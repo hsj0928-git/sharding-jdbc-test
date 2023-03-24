@@ -1,0 +1,79 @@
+spring:
+  shardingsphere:
+    props:
+      sql-show:
+    #hikari数据源配置
+    datasource:
+      names: ds0,ds1,ds2
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: chiscdc
+      ds2:
+        #从库
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3307/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+        maxPoolSize: 100
+        minPoolSize: 5
+        #具体分表策略
+    sharding:
+      #配置数据源的读写分离
+      #      master-slave-rules:
+      #配置主从名称，可以任意取名
+      #        ms:
+      #配置主库，负责写入
+      #          master-data-source-name: ds1
+      #配置从库slave节点，多个从节点以逗号分割
+      #          slave-data-source-names: ds2
+      #配置slave节点的负载均衡策略,采用轮询机制
+      #          load-balance-algorithm-type: round_robin
+      # 默认数据源，主要用于写，注意一定要配置读写分离 ,注意：如果不配置，那么就会把三个节点都当做从slave节点，新增，修改和删除会出错。
+      #        default-data-source-name: ms
+      tables:
+        tb_user:
+          #节点ds.tb_user0 和 ds.tb_user1
+          actual-data-nodes: ds$->{0..1}.tb_user
+          database-strategy:
+            #常规策略
+            inline:
+              #分表字段
+              sharding-column: username
+              #分表策略
+              algorithm-expression: ds$->{Math.abs(username.hashCode()) % 2}
+            #精准策略
+        #            standard:
+        #               sharding-column: username
+        #               precise-algorithm-class-name: com.jingnan.data.algorithm.MyDBPreciseShardingAlgorithm
+        tb_order:
+          actual-data-nodes: ds$->{0..1}.tb_order
+          database-strategy:
+            inline:
+              #分表字段
+              sharding-column: id
+              #分表策略
+              algorithm-expression: ds$->{id.toLong() % 2}
+        #子表
+        tb_order_item:
+          actual-data-nodes: ds$->{0..1}.tb_order_item$->{0..4}
+          database-strategy:
+            #常规策略
+            inline:
+              sharding-column: name
+              algorithm-expression: ds$->{Math.abs(name.hashCode()) % 2}
+          table-strategy:
+            inline:
+              #分表主表字段
+              sharding-column: order_id
+              algorithm-expression: tb_order_item$->{order_id.toLong() % 5}
+

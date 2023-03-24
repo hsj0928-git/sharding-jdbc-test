@@ -1,0 +1,90 @@
+spring:
+  shardingsphere:
+    props:
+      #日志
+      sql.show: true
+    #hikari数据源配置
+    datasource:
+      names: ds0,ds1,ds2,ds3
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: chiscdc
+      ds2:
+        #从库
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3307/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+        maxPoolSize: 100
+        minPoolSize: 5
+      ds3:
+        #从库
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3308/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+        maxPoolSize: 100
+        minPoolSize: 5
+        #轮询策略
+      masterslave:
+        load-balance-algorithm-type: round_robin
+    sharding:
+      #主从配置
+      master-slave-rules:
+        ms0:
+          #主库-写
+          master-data-source-name: ds0
+          #从库-读
+          slave-data-source-names: ds2
+        ms1:
+          #主库-写
+          master-data-source-name: ds1
+          #从库-读
+          slave-data-source-names: ds3
+      #默认数据源名称
+      default-data-source-name: ms0
+      tables:
+        #主表
+        tb_order:
+          actual-data-nodes: ms$->{0..1}.tb_order$->{0..1}
+          database-strategy:
+            inline:
+              #分库字段（订单来源）
+              sharding-column: source_type
+              #分库策略
+              algorithm-expression: ms$->{source_type.toLong() % 2}
+          table-strategy:
+            #常规的分表策略
+            inline:
+              sharding-column: id
+              algorithm-expression: tb_order$->{id.toLong() % 2}
+          #子表
+        tb_order_item:
+          actual-data-nodes: ms$->{0..1}.tb_order_item$->{0..1}
+          database-strategy:
+            #常规分库策略
+            inline:
+              sharding-column: source_type
+              algorithm-expression: ms$->{source_type.toLong() % 2}
+          table-strategy:
+            #常规的分表策略
+            inline:
+              sharding-column: order_id
+              algorithm-expression: tb_order_item$->{order_id.toLong() % 2}
+      # 设置绑定表，左边的为主表，右边的为子表（为了防止出现笛卡尔现象）
+      binding-tables:
+        - tb_order,tb_order_item
+      #广播表
+      broadcast-tables:
+        - t_dict

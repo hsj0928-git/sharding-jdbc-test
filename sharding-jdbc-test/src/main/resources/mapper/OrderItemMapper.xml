@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jingnan.data.mapper.OrderItemMapper">
+
+    <resultMap id="orderItem" type="com.jingnan.data.entity.OrderItem">
+        <result column="order_id" property="orderId"/>
+        <result column="id" property="id"/>
+    </resultMap>
+    <select id="queryOrderItem" resultMap="orderItem">
+        select * from  tb_order_item T left join tb_order T1 on t.order_id = T1.id where T.source_type = 0
+    </select>
+    <select id="queryOrderItems" resultType="com.jingnan.data.entity.OrderItem">
+        select * from  tb_order_item where source_type = 0
+    </select>
+    <select id="queryOrderItem1" resultType="com.jingnan.data.entity.OrderItem">
+        select * from  tb_order_item T left join  tb_order T1 on T.order_id = T1.id
+        where T.num > 5 and (T.is_return = 0 or T.is_return is null ) and T1.pay_type = 1
+          and T1.order_status = 1
+    </select>
+    <select id="queryOrderItemThread" resultType="com.jingnan.data.entity.OrderItem">
+        select * from  tb_order_item T left join tb_order T1 on t.order_id = T1.id  where 1=1  <if test="value != null and value != '' ">  and T.source_type = #{value} </if>
+    </select>
+    <select id="findUser" resultType="java.lang.String">
+        select phone from  tb_user;
+    </select>
+</mapper>

@@ -1,0 +1,72 @@
+spring:
+  shardingsphere:
+    props:
+      sql.show: true
+    #hikari数据源配置
+    datasource:
+      names: ds0,ds1,ds2,ds3
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3306/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: chiscdc
+      ds2:
+        #从库
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3307/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+        maxPoolSize: 100
+        minPoolSize: 5
+      ds3:
+        #从库
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbcUrl: jdbc:mysql://ip:3308/jingnan_all?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false&zeroDateTimeBehavior=convertToNull&serverTimezone=GMT%2B8
+        username: root
+        password: root
+        maxPoolSize: 100
+        minPoolSize: 5
+        #轮询策略
+      masterslave:
+        load-balance-algorithm-type: round_robin
+    sharding:
+      #主从配置
+      master-slave-rules:
+        ms0:
+          #主库-写
+          master-data-source-name: ds0
+          #从库-读
+          slave-data-source-names: ds2
+        ms1:
+          #主库-写
+          master-data-source-name: ds1
+          #从库-读
+          slave-data-source-names: ds3
+      #默认数据源名称
+      default-data-source-name: ms0
+      tables:
+        #业务表
+        tb_order_item_cs:
+          #表节点
+          actual-data-nodes: ms$->{0..1}.tb_order_item_cs$->{0..1}
+          #分库策略
+          database-strategy:
+            #常规策略
+            inline:
+              sharding-column: id
+              algorithm-expression: ms$->{Math.abs(id.hashCode()) % 2}
+          #分表策略
+          table-strategy:
+            inline:
+              sharding-column: id
+              algorithm-expression: tb_order_item_cs$->{id.toLong() % 2}
+
